@@ -37,7 +37,7 @@ TARGET_BODIES = {
 }
 
 # These committees are always included — no keyword filtering needed
-ALWAYS_INCLUDE = {5315, 5241}
+ALWAYS_INCLUDE = {5315, 5241, 1}
 
 # ── Topics & Keywords ──────────────────────────────────────────────────────────
 
