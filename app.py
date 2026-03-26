@@ -222,23 +222,28 @@ def fetch_hearings() -> list[dict]:
         except Exception:
             items = []
 
-        # Only include items that are real agenda matters (have a MatterId)
+        # Separate T-type items (hearing titles) from bill items
+        hearing_titles = []
         agenda_items = []
         for i in items:
             if not i.get("EventItemMatterId"):
                 continue
+            file = i.get("EventItemMatterFile", "")
             t = (i.get("EventItemTitle") or "") + " " + (i.get("EventItemMatterName") or "")
-            agenda_items.append({
-                "title": i.get("EventItemTitle") or i.get("EventItemMatterName", ""),
-                "file":  i.get("EventItemMatterFile", ""),
-                "type":  i.get("EventItemMatterType", ""),
-                "status": i.get("EventItemMatterStatus", ""),
-                "topics": get_topics(t),
-                "url": matter_url(
-                    i["EventItemMatterId"],
-                    i.get("EventItemMatterGuid", ""),
-                ),
-            })
+            if file.startswith("T"):
+                hearing_titles.append(i.get("EventItemTitle") or i.get("EventItemMatterName", ""))
+            else:
+                agenda_items.append({
+                    "title": i.get("EventItemTitle") or i.get("EventItemMatterName", ""),
+                    "file":  file,
+                    "type":  i.get("EventItemMatterType", ""),
+                    "status": i.get("EventItemMatterStatus", ""),
+                    "topics": get_topics(t),
+                    "url": matter_url(
+                        i["EventItemMatterId"],
+                        i.get("EventItemMatterGuid", ""),
+                    ),
+                })
 
         always = ev["_body_id"] in ALWAYS_INCLUDE
         all_item_text = " ".join(
@@ -257,6 +262,7 @@ def fetch_hearings() -> list[dict]:
                 "location":      (ev.get("EventLocation") or "").strip('"'),
                 "agenda_status": ev.get("EventAgendaStatusName", ""),
                 "is_past":       ev["_is_past"],
+                "hearing_titles": hearing_titles,
                 "agenda":        agenda_items,
                 "topics":        event_topics,
                 "url":           ev.get("EventInSiteURL") or f"https://nyc.legistar.com/MeetingDetail.aspx?ID={eid}&GUID={ev.get('EventGuid', '')}",

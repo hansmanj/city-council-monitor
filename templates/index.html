@@ -173,7 +173,7 @@
 
           <div class="px-4 py-3">
             <!-- Committee & status -->
-            <div class="flex items-center gap-2 flex-wrap mb-2">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
               <span class="text-sm font-medium text-gray-700">{{ h.committee }}</span>
               {% if h.agenda_status %}
               <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
@@ -181,6 +181,15 @@
               </span>
               {% endif %}
             </div>
+
+            <!-- Hearing subject (T-type title) -->
+            {% if h.hearing_titles %}
+            <div class="mb-2">
+              {% for title in h.hearing_titles %}
+              <p class="text-sm font-semibold text-gray-800 italic">{{ title }}</p>
+              {% endfor %}
+            </div>
+            {% endif %}
 
             <!-- Topic tags -->
             {% if h.topics %}
