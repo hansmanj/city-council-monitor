@@ -260,6 +260,7 @@ def fetch_hearings() -> list[dict]:
                 "agenda":        agenda_items,
                 "topics":        event_topics,
                 "url":           ev.get("EventInSiteURL") or f"https://nyc.legistar.com/MeetingDetail.aspx?ID={eid}&GUID={ev.get('EventGuid', '')}",
+                "is_stated":     ev["_body_id"] == 1,
                 "video_url":     ev.get("EventVideoPath") or "",
             })
 

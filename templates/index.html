@@ -32,6 +32,29 @@
   class="max-w-4xl mx-auto px-4 py-6"
 >
 
+  <!-- ── Next Stated Meeting Banner ──────────────────────────────── -->
+  {% set next_stated = data.hearings | selectattr("is_stated", "equalto", true) | selectattr("is_past", "equalto", false) | first %}
+  {% if next_stated %}
+  <div class="mb-5 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center gap-3">
+    <div class="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+      <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <div class="flex-1">
+      <span class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Next Stated Meeting</span>
+      <p class="text-sm font-semibold text-indigo-900">{{ next_stated.date | fmt_date_full }}
+        <span class="font-normal text-indigo-600">· {{ next_stated.time }} · {{ next_stated.location }}</span>
+      </p>
+    </div>
+    <a href="{{ next_stated.url }}" target="_blank"
+       class="flex-shrink-0 text-xs text-indigo-500 hover:text-indigo-700 hover:underline">
+      Details →
+    </a>
+  </div>
+  {% endif %}
+
   <!-- ── Header ───────────────────────────────────────────────────── -->
   <div class="flex items-start justify-between mb-1">
     <div>
@@ -114,11 +137,11 @@
   ═══════════════════════════════════════════════════════════════════ -->
   <div x-show="activeTab === 'hearings'" x-cloak>
 
-    <!-- Upcoming -->
-    {% set upcoming = data.hearings | selectattr("is_past", "false") | list %}
+    <!-- Upcoming Committee Hearings -->
+    {% set upcoming = data.hearings | selectattr("is_past", "false") | selectattr("is_stated", "equalto", false) | list %}
     {% if upcoming %}
       <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-        Upcoming — Next 90 Days
+        Committee Hearings — Next 90 Days
       </h2>
       <div class="space-y-3">
         {% for h in upcoming %}
@@ -211,6 +234,36 @@
       </div>
     {% else %}
       <p class="text-sm text-gray-400 italic">No upcoming hearings in the next 90 days.</p>
+    {% endif %}
+
+    <!-- Upcoming Stated Meetings -->
+    {% set upcoming_stated = data.hearings | selectattr("is_past", "equalto", false) | selectattr("is_stated", "equalto", true) | list %}
+    {% if upcoming_stated %}
+    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-8 mb-3">
+      Stated Meetings — Next 90 Days
+    </h2>
+    <div class="border border-indigo-100 rounded-xl overflow-hidden divide-y divide-indigo-50">
+      {% for h in upcoming_stated %}
+      <div
+        x-show="activeTopic === 'all' || '{{ h.topics | join(',') }}'.split(',').filter(t => t).includes(activeTopic)"
+        class="px-4 py-3 bg-white flex items-center gap-3"
+      >
+        <div class="flex-shrink-0 w-2 h-2 rounded-full bg-indigo-300"></div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-800">{{ h.date | fmt_date_full }}</p>
+          <p class="text-xs text-gray-500">{{ h.time }}{% if h.location %} · {{ h.location }}{% endif %}</p>
+        </div>
+        {% if h.topics %}
+        <div class="flex flex-wrap gap-1 flex-shrink-0">
+          {% for t in h.topics %}
+          <span class="px-1.5 py-px rounded-full text-xs {{ topics[t].tag }}">{{ topics[t].label }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <a href="{{ h.url }}" target="_blank" class="flex-shrink-0 text-xs text-indigo-500 hover:underline">Details →</a>
+      </div>
+      {% endfor %}
+    </div>
     {% endif %}
 
     <!-- Recent Past (collapsed by default) -->
