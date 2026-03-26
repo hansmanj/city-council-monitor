@@ -422,18 +422,6 @@ def do_refresh():
     return redirect(url_for("index"))
 
 
-@app.route("/status")
-def status():
-    token_set = bool(TOKEN)
-    token_preview = TOKEN[:8] + "..." if TOKEN else "NOT SET"
-    try:
-        test = legistar("bodies", {"$top": "1"})
-        api_ok = True
-    except Exception as e:
-        api_ok = False
-        api_error = str(e)
-    return {"token_set": token_set, "token_preview": token_preview, "api_ok": api_ok, "api_error": api_error if not api_ok else None}
-
 
 if __name__ == "__main__":
     init_db()
