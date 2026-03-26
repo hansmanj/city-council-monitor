@@ -36,8 +36,10 @@ TARGET_BODIES = {
     "City Council (Stated Meeting)": 1,
 }
 
-# These committees are always included — no keyword filtering needed
-ALWAYS_INCLUDE = {5315, 5241, 1}
+# Always include these for hearings (no keyword filtering)
+ALWAYS_INCLUDE_HEARINGS = {5315, 5241, 1}
+# Always include these for bills (no keyword filtering)
+ALWAYS_INCLUDE_BILLS = {5315, 5241}
 
 # ── Topics & Keywords ──────────────────────────────────────────────────────────
 
@@ -245,7 +247,7 @@ def fetch_hearings() -> list[dict]:
                     ),
                 })
 
-        always = ev["_body_id"] in ALWAYS_INCLUDE
+        always = ev["_body_id"] in ALWAYS_INCLUDE_HEARINGS
         all_item_text = " ".join(
             (i.get("EventItemTitle") or "") + " " + (i.get("EventItemMatterName") or "")
             for i in items
@@ -313,7 +315,7 @@ def fetch_bills() -> list[dict]:
                 + (m.get("MatterEXText5") or "")
             )
             topics = get_topics(text)
-            always = body_id in ALWAYS_INCLUDE
+            always = body_id in ALWAYS_INCLUDE_BILLS
 
             if not (always or topics or is_relevant(text)):
                 continue
