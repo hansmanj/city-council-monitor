@@ -150,6 +150,8 @@ def init_db():
             )
         """)
 
+init_db()
+
 
 def cache_get(key: str):
     with sqlite3.connect(DB_PATH) as conn:
