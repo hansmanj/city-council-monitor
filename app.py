@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, abort
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -416,8 +416,8 @@ def status_style(s: str) -> str:
 # Bill pipeline stages in order
 BILL_PIPELINE = [
     ("Introduced",      ["introduced", "referred"]),
-    ("Hearing",         ["hearing held", "hearing scheduled", "hearing waived"]),
-    ("Committee",       ["approved by comm", "amended by comm", "amendment proposed", "laid over by comm"]),
+    ("Hearing",         ["hearing held", "hearing scheduled", "hearing waived", "laid over"]),
+    ("Committee",       ["approved by comm", "amended by comm", "amendment proposed"]),
     ("Council Vote",    ["passed by council", "approved by council", "sent to mayor"]),
     ("Mayor",           ["signed", "mayor", "returned unsigned"]),
     ("Law",             ["enacted", "signed into law"]),
@@ -438,12 +438,85 @@ def bill_stage(s: str) -> dict:
     return {"step": 0, "dead": False, "label": s}  # default to introduced
 
 
+# NYC Legistar InSite constants (GID and G are fixed for NYC Council)
+NYC_GID = 61
+NYC_G   = "2FD004F1-D85B-4588-A648-0A736C77D6E3"
+
+
+def find_bill_insite_url(matter_id: int, matter_file: str) -> str | None:
+    """
+    The Legistar API and InSite website use different ID systems for bills.
+    We find the correct URL by scraping a meeting page where the bill appeared.
+    """
+    import re
+    try:
+        histories = legistar(f"matters/{matter_id}/histories", {
+            "$orderby": "MatterHistoryActionDate desc",
+            "$top": "10",
+        })
+    except Exception:
+        return None
+
+    num_match = re.search(r"(\d{4})", matter_file)
+    if not num_match:
+        return None
+    bill_num = num_match.group(1)
+
+    for h in histories:
+        event_id = h.get("MatterHistoryEventId")
+        if not event_id:
+            continue
+        meeting_url = (
+            f"https://nyc.legistar.com/MeetingDetail.aspx"
+            f"?LEGID={event_id}&GID={NYC_GID}&G={NYC_G}"
+        )
+        try:
+            resp = requests.get(
+                meeting_url, timeout=15,
+                headers={"User-Agent": "Mozilla/5.0"}
+            )
+            page = resp.text.replace("&amp;", "&")
+            # Find the LegislationDetail URL that appears near this bill's number
+            pattern = (
+                rf"(LegislationDetail\.aspx\?[^\s\"'<]+)"
+                rf"(?=[^<]{{0,600}}(?:Int|Res|Ll)\s+{bill_num})"
+            )
+            match = re.search(pattern, page, re.DOTALL | re.IGNORECASE)
+            if match:
+                return "https://nyc.legistar.com/" + match.group(1)
+        except Exception:
+            continue
+    return None
+
+
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
     data = get_data()
     return render_template("index.html", data=data, topics=TOPICS)
+
+
+@app.route("/bill/<int:matter_id>")
+def bill_redirect(matter_id):
+    cache_key = f"bill_url_{matter_id}"
+    cached_url = cache_get(cache_key)
+    if cached_url:
+        return redirect(cached_url)
+
+    # Find the bill's file number from cached dashboard data
+    data = cache_get("dashboard") or {}
+    matter_file = next(
+        (b["file"] for b in data.get("bills", []) if b.get("id") == matter_id), ""
+    )
+
+    insite_url = find_bill_insite_url(matter_id, matter_file)
+    if insite_url:
+        cache_set(cache_key, insite_url, ttl=60 * 24 * 7)
+        return redirect(insite_url)
+
+    # Fallback: Legistar legislation listing
+    return redirect("https://nyc.legistar.com/Legislation.aspx")
 
 
 @app.route("/refresh")
