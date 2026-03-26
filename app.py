@@ -413,6 +413,31 @@ def status_style(s: str) -> str:
     return "bg-gray-100 text-gray-500"
 
 
+# Bill pipeline stages in order
+BILL_PIPELINE = [
+    ("Introduced",      ["introduced", "referred"]),
+    ("Hearing",         ["hearing held", "hearing scheduled", "hearing waived"]),
+    ("Committee",       ["approved by comm", "amended by comm", "amendment proposed", "laid over by comm"]),
+    ("Council Vote",    ["passed by council", "approved by council", "sent to mayor"]),
+    ("Mayor",           ["signed", "mayor", "returned unsigned"]),
+    ("Law",             ["enacted", "signed into law"]),
+]
+
+BILL_DEAD = ["filed", "withdrawn", "vetoed", "defeated"]
+
+
+@app.template_filter("bill_stage")
+def bill_stage(s: str) -> dict:
+    """Return pipeline info: stage index (0-5), dead status, and label."""
+    s_lower = (s or "").lower()
+    if any(d in s_lower for d in BILL_DEAD):
+        return {"step": -1, "dead": True, "label": s}
+    for i, (label, keywords) in enumerate(BILL_PIPELINE):
+        if any(k in s_lower for k in keywords):
+            return {"step": i, "dead": False, "label": s}
+    return {"step": 0, "dead": False, "label": s}  # default to introduced
+
+
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
 @app.route("/")

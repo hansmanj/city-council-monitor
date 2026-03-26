@@ -348,16 +348,50 @@
           {% if b.is_new %}
           <span class="px-1.5 py-0.5 rounded bg-blue-600 text-white text-xs font-semibold">New</span>
           {% endif %}
-          <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ b.status | status_style }}">
-            {{ b.status }}
-          </span>
           <span class="ml-auto text-xs text-gray-400">{{ b.type }}</span>
         </div>
 
         <!-- Title / Name -->
-        <p class="text-sm text-gray-800 font-medium leading-snug mb-1">
+        <p class="text-sm text-gray-800 font-medium leading-snug mb-2">
           {{ b.name or b.title }}
         </p>
+
+        <!-- Progress pipeline -->
+        {% set stage = b.status | bill_stage %}
+        {% set steps = [("Introduced", 0), ("Hearing", 1), ("Committee", 2), ("Council Vote", 3), ("Mayor", 4), ("Law", 5)] %}
+        {% if stage.dead %}
+        <div class="flex items-center gap-2 mb-2">
+          <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+            {{ stage.label }}
+          </span>
+        </div>
+        {% else %}
+        <div class="mb-3">
+          <div class="flex items-center gap-0">
+            {% for label, idx in steps %}
+            {% set active = idx <= stage.step %}
+            {% set current = idx == stage.step %}
+            <!-- Dot -->
+            <div class="relative flex flex-col items-center" style="min-width:0;flex:1">
+              <div class="w-2.5 h-2.5 rounded-full border-2 flex-shrink-0
+                {% if current %}border-blue-600 bg-blue-600
+                {% elif active %}border-blue-400 bg-blue-400
+                {% else %}border-gray-200 bg-white{% endif %}">
+              </div>
+              <span class="text-center leading-tight mt-1
+                {% if current %}text-blue-700 font-semibold{% elif active %}text-blue-400{% else %}text-gray-300{% endif %}"
+                style="font-size:9px; max-width:44px">{{ label }}</span>
+            </div>
+            <!-- Connector line (not after last) -->
+            {% if not loop.last %}
+            <div class="h-0.5 flex-1 -mt-3.5
+              {% if idx < stage.step %}bg-blue-400{% else %}bg-gray-200{% endif %}">
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
 
         <!-- Summary -->
         {% if b.summary %}
