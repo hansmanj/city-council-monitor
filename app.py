@@ -21,7 +21,7 @@ DB_PATH = Path("cache.db")
 
 # ── Legistar Config ────────────────────────────────────────────────────────────
 
-TOKEN = os.environ.get("LEGISTAR_TOKEN", "")
+TOKEN = os.environ.get("LEGISTAR_TOKEN", "").strip().lstrip("=")
 BASE_URL = "https://webapi.legistar.com/v1/nyc"
 CACHE_TTL = 30  # minutes
 
