@@ -187,11 +187,7 @@ def legistar(endpoint: str, params: dict = None) -> list:
 
 
 def matter_url(mid: int, guid: str) -> str:
-    return f"https://legistar.council.nyc.gov/LegislationDetail.aspx?ID={mid}&GUID={guid}"
-
-
-def event_url(eid: int, guid: str) -> str:
-    return f"https://legistar.council.nyc.gov/MeetingDetail.aspx?ID={eid}&GUID={guid}"
+    return f"https://nyc.legistar.com/LegislationDetail.aspx?ID={mid}&GUID={guid}"
 
 
 # ── Data Fetching ──────────────────────────────────────────────────────────────
@@ -263,7 +259,7 @@ def fetch_hearings() -> list[dict]:
                 "is_past":       ev["_is_past"],
                 "agenda":        agenda_items,
                 "topics":        event_topics,
-                "url":           event_url(eid, ev.get("EventGuid", "")),
+                "url":           ev.get("EventInSiteURL") or f"https://nyc.legistar.com/MeetingDetail.aspx?ID={eid}&GUID={ev.get('EventGuid', '')}",
                 "video_url":     ev.get("EventVideoPath") or "",
             })
 
