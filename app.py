@@ -51,7 +51,7 @@ TOPICS = {
         "btn_inactive": "bg-blue-50 text-blue-500",
         "terms": [
             "mental health", "behavioral health", "psychiatric", "psychiatry",
-            "psychosis", "omh", "dohmh", "mental hygiene", "suicide", "self-harm",
+            "psychosis", "omh", "suicide", "self-harm",
             "inpatient psychiatric", "outpatient mental",
         ],
     },
@@ -512,8 +512,44 @@ def bill_redirect(matter_id):
         cache_set(cache_key, insite_url, ttl=60 * 24 * 7)
         return redirect(insite_url)
 
-    # Fallback: Legistar legislation listing
-    return redirect("https://nyc.legistar.com/Legislation.aspx")
+    # Fallback: auto-submit Legistar search form with the bill number pre-filled.
+    # Legistar's search results require JavaScript/AJAX, so we serve a page that
+    # POSTs the search form — the user's browser will execute Legistar's JS and
+    # display results, from which they can click through to the bill.
+    if matter_file:
+        try:
+            lg = requests.get(
+                "https://legistar.council.nyc.gov/Legislation.aspx",
+                timeout=10, headers={"User-Agent": "Mozilla/5.0"},
+            )
+            import re as _re
+            def _field(name):
+                m = _re.search(rf'id="{name}"\s+value="([^"]*)"', lg.text)
+                return m.group(1) if m else ""
+            from markupsafe import escape
+            return f"""<!DOCTYPE html>
+<html><head><title>Searching Legistar for {escape(matter_file)}...</title></head>
+<body>
+<p>Looking up <strong>{escape(matter_file)}</strong> on Legistar&hellip;</p>
+<form id="f" action="https://legistar.council.nyc.gov/Legislation.aspx" method="post">
+  <input type="hidden" name="__VIEWSTATE" value="{escape(_field('__VIEWSTATE'))}" />
+  <input type="hidden" name="__EVENTVALIDATION" value="{escape(_field('__EVENTVALIDATION'))}" />
+  <input type="hidden" name="__VIEWSTATEGENERATOR" value="{escape(_field('__VIEWSTATEGENERATOR'))}" />
+  <input type="hidden" name="__PREVIOUSPAGE" value="{escape(_field('__PREVIOUSPAGE'))}" />
+  <input type="hidden" name="__EVENTTARGET" value="" />
+  <input type="hidden" name="__EVENTARGUMENT" value="" />
+  <input type="hidden" name="ctl00$ContentPlaceHolder1$txtSearch" value="{escape(matter_file)}" />
+  <input type="hidden" name="ctl00$ContentPlaceHolder1$lstYears" value="This Year" />
+  <input type="hidden" name="ctl00$ContentPlaceHolder1$lstTypeBasic" value="All Types" />
+  <input type="hidden" name="ctl00_RadScriptManager1_TSM" value="" />
+  <noscript><input type="submit" value="Search Legistar" /></noscript>
+</form>
+<script>document.getElementById("f").submit();</script>
+</body></html>""", 200, {"Content-Type": "text/html"}
+        except Exception:
+            pass
+
+    return redirect("https://legistar.council.nyc.gov/Legislation.aspx")
 
 
 @app.route("/refresh")
