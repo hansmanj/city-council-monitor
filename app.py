@@ -447,8 +447,10 @@ NYC_G   = "2FD004F1-D85B-4588-A648-0A736C77D6E3"
 
 def find_bill_insite_url(matter_id: int, matter_file: str) -> str | None:
     """
-    The Legistar API and InSite website use different ID systems for bills.
-    We find the correct URL by scraping a meeting page where the bill appeared.
+    Legistar API MatterIds and InSite website IDs are completely different systems.
+    We find the correct InSite URL by scraping a meeting page where the bill appeared.
+    The bill file number (e.g. 'Int 0778-2026') appears as link text, with the
+    LegislationDetail href immediately before it in the HTML.
     """
     import re
     try:
@@ -459,33 +461,26 @@ def find_bill_insite_url(matter_id: int, matter_file: str) -> str | None:
     except Exception:
         return None
 
-    num_match = re.search(r"(\d{4})", matter_file)
-    if not num_match:
-        return None
-    bill_num = num_match.group(1)
-
     for h in histories:
         event_id = h.get("MatterHistoryEventId")
         if not event_id:
             continue
         meeting_url = (
-            f"https://nyc.legistar.com/MeetingDetail.aspx"
+            f"https://legistar.council.nyc.gov/MeetingDetail.aspx"
             f"?LEGID={event_id}&GID={NYC_GID}&G={NYC_G}"
         )
         try:
-            resp = requests.get(
-                meeting_url, timeout=15,
-                headers={"User-Agent": "Mozilla/5.0"}
-            )
+            resp = requests.get(meeting_url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
             page = resp.text.replace("&amp;", "&")
-            # Find the LegislationDetail URL that appears near this bill's number
-            pattern = (
-                rf"(LegislationDetail\.aspx\?[^\s\"'<]+)"
-                rf"(?=[^<]{{0,600}}(?:Int|Res|Ll)\s+{bill_num})"
-            )
-            match = re.search(pattern, page, re.DOTALL | re.IGNORECASE)
-            if match:
-                return "https://nyc.legistar.com/" + match.group(1)
+            # The link href appears BEFORE the bill number in the HTML, so search
+            # for the bill file in the page then look backwards for the nearest link.
+            idx = page.find(matter_file)
+            if idx < 0:
+                continue
+            snippet = page[max(0, idx - 600):idx]
+            links = re.findall(r"LegislationDetail\.aspx\?[^\s\"'<]+", snippet)
+            if links:
+                return "https://legistar.council.nyc.gov/" + links[-1]
         except Exception:
             continue
     return None
