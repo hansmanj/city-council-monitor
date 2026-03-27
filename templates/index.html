@@ -306,9 +306,14 @@
               <span class="text-xs text-gray-400 font-mono flex-shrink-0 w-16">
                 {{ h.date | fmt_date }}
               </span>
-              <span class="text-xs text-gray-500 truncate flex-1">
-                {{ h.committee }}
-              </span>
+              <div class="flex-1 min-w-0">
+                <span class="text-xs text-gray-500">{{ h.committee }}</span>
+                {% if h.hearing_titles %}
+                  {% for title in h.hearing_titles %}
+                  <p class="text-xs font-semibold text-gray-700 italic truncate">{{ title }}</p>
+                  {% endfor %}
+                {% endif %}
+              </div>
               {% if h.topics %}
               <div class="flex flex-wrap gap-1 flex-shrink-0">
                 {% for t in h.topics %}
