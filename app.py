@@ -413,14 +413,16 @@ def status_style(s: str) -> str:
     return "bg-gray-100 text-gray-500"
 
 
-# Bill pipeline stages in order
+# Bill pipeline stages in order.
+# IMPORTANT: check more-specific strings before less-specific ones
+# e.g. "mayor's desk" before "enacted" so "Enacted (Mayor's Desk for Signature)"
+# lands at Mayor (step 3) not Enacted (step 4).
 BILL_PIPELINE = [
-    ("Introduced",      ["introduced", "referred"]),
-    ("Hearing",         ["hearing held", "hearing scheduled", "hearing waived", "laid over"]),
-    ("Committee",       ["approved by comm", "amended by comm", "amendment proposed"]),
-    ("Council Vote",    ["passed by council", "approved by council", "sent to mayor"]),
-    ("Mayor",           ["signed", "mayor", "returned unsigned"]),
-    ("Law",             ["enacted", "signed into law"]),
+    ("Introduced",   ["introduced"]),
+    ("In Committee", ["committee", "laid over", "referred"]),
+    ("Council Vote", ["passed by council", "approved by council"]),
+    ("Mayor",        ["mayor's desk", "sent to mayor", "returned unsigned"]),
+    ("Enacted",      ["enacted", "signed into law"]),
 ]
 
 BILL_DEAD = ["filed", "withdrawn", "vetoed", "defeated"]
