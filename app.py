@@ -224,7 +224,12 @@ def fetch_hearings() -> list[dict]:
         except Exception:
             items = []
 
+        # Skip deferred events — they were cancelled/postponed; the Final version is what matters
+        if ev.get("EventAgendaStatusName") == "Deferred":
+            continue
+
         # Separate T-type items (hearing titles) from bill items
+        seen_titles: set[str] = set()
         hearing_titles = []
         agenda_items = []
         for i in items:
@@ -233,7 +238,10 @@ def fetch_hearings() -> list[dict]:
             file = i.get("EventItemMatterFile", "")
             t = (i.get("EventItemTitle") or "") + " " + (i.get("EventItemMatterName") or "")
             if file.startswith("T"):
-                hearing_titles.append(i.get("EventItemTitle") or i.get("EventItemMatterName", ""))
+                title = (i.get("EventItemTitle") or i.get("EventItemMatterName", "")).strip()
+                if title and title not in seen_titles:
+                    seen_titles.add(title)
+                    hearing_titles.append(title)
             else:
                 agenda_items.append({
                     "title": i.get("EventItemTitle") or i.get("EventItemMatterName", ""),

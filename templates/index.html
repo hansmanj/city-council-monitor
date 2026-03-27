@@ -309,9 +309,7 @@
               <div class="flex-1 min-w-0">
                 <span class="text-xs text-gray-500">{{ h.committee }}</span>
                 {% if h.hearing_titles %}
-                  {% for title in h.hearing_titles %}
-                  <p class="text-xs font-semibold text-gray-700 italic truncate">{{ title }}</p>
-                  {% endfor %}
+                <p class="text-xs font-semibold text-gray-700 italic truncate">{{ h.hearing_titles[0] }}</p>
                 {% endif %}
               </div>
               {% if h.topics %}
